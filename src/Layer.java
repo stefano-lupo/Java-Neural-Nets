@@ -5,9 +5,9 @@ import java.util.ArrayList;
 
 public class Layer {
 
-    public final static float DEFAULT_LAYER_X_SPACING = 150;
-    public final static float DEFAULT_NEURON_Y_SPACING = 50;
-    public final static float DEFAULT_VERTICAL_PADDING = 50;
+    final static float DEFAULT_LAYER_X_SPACING = 150;
+    final static float DEFAULT_VERTICAL_PADDING = 50;
+    final static float DEFAULT_NEURON_Y_SPACING = Neuron.DEFAULT_DIAMETER + DEFAULT_VERTICAL_PADDING;
 
 
     private PApplet p;
@@ -35,11 +35,50 @@ public class Layer {
         return neuron;
     }
 
-    void connectAllNeuronsTo(Neuron neuron) {
+    void addOutgoingConnection(Neuron neuron) {
         for(Neuron n : neurons) {
-            n.addConnection(neuron);
+            n.addOutgoingConnection(neuron);
+            neuron.addIncomingConnection(n);
         }
     }
+
+    void addIncomingConnection(Neuron neuron) {
+        for(Neuron n : neurons) {
+            n.addIncomingConnection(neuron);
+            neuron.addOutgoingConnection(n);
+        }
+    }
+
+    void feedLayer(double[] values) {
+        for(int i=0; i<neurons.size(); i++) {
+            neurons.get(i).setValue(values[i]);
+        }
+    }
+
+    void stepLayer() {
+        for(Neuron neuron : neurons) {
+            neuron.updateValue();
+        }
+    }
+
+    double[] getLayerNeuronValues() {
+        double[] values = new double[neurons.size()];
+        for(int i=0; i<neurons.size(); i++) {
+            values[i] = neurons.get(i).getValue();
+        }
+
+        return values;
+    }
+
+    void printConnections() {
+        for(Neuron n : neurons) {
+            n.printConnections();
+        }
+    }
+
+    /************************************************
+     * Drawing
+     ************************************************/
 
     void drawGridLines() {
         p.stroke(255);

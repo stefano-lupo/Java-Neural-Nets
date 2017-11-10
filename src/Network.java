@@ -1,6 +1,4 @@
 import processing.core.PApplet;
-
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class Network extends PApplet {
@@ -14,14 +12,44 @@ public class Network extends PApplet {
     private ArrayList<Layer> layers;
     private boolean settingUp = true;
 
+
+    private int currentStepLayer = 1;
+    private int currentInstance = 0;
+    private double[][] values;
+    private double[][] outputs;
+
     public void settings() {
         size(800,800);
     }
 
     public void setup() {
         layers = new ArrayList<>();
-//        layers.add(new Layer(this, 0, width, height));
+        addLayer();
+        addNeuron(0);
+        addLayer();
+        addNeuron(1);
+        addNeuron(1);
+        addLayer();
 
+        double[][] values = {
+            {0, 0},
+            {0, 1},
+            {1, 0},
+            {1, 1},
+        };
+        this.values = values;
+
+        double[][] outputs = {
+            {0},
+            {1},
+            {1},
+            {0},
+        };
+
+        this.outputs = outputs;
+
+        printNetworkConnections();
+        feedNetwork();
     }
 
     public void draw() {
@@ -29,16 +57,16 @@ public class Network extends PApplet {
 
         if(settingUp) {
             drawSetUp();
+        } else {
+            drawRunning();
         }
 
     }
 
     private void drawSetUp() {
-        frameRate(15);
-        for(Layer layer : layers) {
-            layer.drawGridLines();
-            layer.drawLayer();
-        }
+        frameRate(10);
+        drawNetwork();
+        text("Setup",this.width-150, this.height - 50);
 
         if(mousePressed) {
             int layerIndex = (int)Math.floor(mouseX / layerSpacing);
@@ -48,6 +76,17 @@ public class Network extends PApplet {
                 addLayer();
             }
         }
+
+        if(keyPressed && key=='s') {
+            this.settingUp = false;
+        }
+    }
+
+    private void drawNetwork() {
+        for(Layer layer : layers) {
+            layer.drawGridLines();
+            layer.drawLayer();
+        }
     }
 
     private void addNeuron(int layerIndex) {
@@ -55,11 +94,11 @@ public class Network extends PApplet {
 
         Layer layer;
         if(layerIndex > 0 && (layer = layers.get(layerIndex - 1)) != null) {
-            layer.connectAllNeuronsTo(neuron);
+            layer.addOutgoingConnection(neuron);
         }
 
         if(layerIndex < layers.size() - 1 && (layer = layers.get(layerIndex+1)) != null) {
-            layer.connectAllNeuronsTo(neuron);
+            layer.addIncomingConnection(neuron);
         }
     }
 
@@ -70,7 +109,45 @@ public class Network extends PApplet {
         addNeuron(newLayerIndex);
     }
 
-    private void drawRunning() {
+    private void feedNetwork() {
+        layers.get(0).feedLayer(values[currentInstance]);
+    }
 
+
+    private void drawRunning() {
+        drawNetwork();
+        text("Running",this.width-150, this.height - 50);
+        if(mousePressed && currentInstance != values.length) {
+            stepNetwork();
+        }
+    }
+
+    private void stepNetwork() {
+        System.out.println("Stepping layer");
+        layers.get(currentStepLayer).stepLayer();
+        currentStepLayer++;
+        if(currentStepLayer == layers.size()) {
+            backPropogate();
+            currentStepLayer = 1;
+            feedNetwork();
+        }
+    }
+
+    private void backPropogate() {
+        double[] target = outputs[currentInstance];
+        double[] predicted = layers.get(layers.size()-1).getLayerNeuronValues();
+
+        double[] differences = new double[target.length];
+        for(int i=0; i<target.length; i++) {
+            differences[i] = target[i] - predicted[i];
+        }
+
+        currentInstance++;
+    }
+
+    private void printNetworkConnections() {
+        for(Layer l : layers) {
+            l.printConnections();
+        }
     }
 }
